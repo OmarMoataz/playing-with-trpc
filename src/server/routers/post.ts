@@ -77,7 +77,9 @@ export const postRouter = router({
       const { id } = input;
       const post = await prisma.post.findUnique({
         where: { id },
-        select: defaultPostSelect,
+        include: {
+          comments: true,
+        },
       });
       if (!post) {
         throw new TRPCError({

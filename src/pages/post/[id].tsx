@@ -1,5 +1,6 @@
 import NextError from 'next/error';
 import { useRouter } from 'next/router';
+import AddComment from '~/components/comments/addComment';
 import { NextPageWithLayout } from '~/pages/_app';
 import { RouterOutput, trpc } from '~/utils/trpc';
 
@@ -7,15 +8,38 @@ type PostByIdOutput = RouterOutput['post']['byId'];
 
 function PostItem(props: { post: PostByIdOutput }) {
   const { post } = props;
+  const { comments } = post;
+  const utils = trpc.useContext();
+
+  const addComment = trpc.comment.add.useMutation({
+    async onSuccess() {
+      // refetches posts after a post is added
+      await utils.post.invalidate();
+    },
+  });
+
+  const handleCommentAddition = async (commentText: string) => {
+    const input = {
+      text: commentText,
+      postId: post?.id,
+    };
+    await addComment.mutateAsync(input);
+  };
+
   return (
     <>
       <h1>{post.title}</h1>
       <em>Created {post.createdAt.toLocaleDateString('en-us')}</em>
 
       <p>{post.text}</p>
+      <h2> Comments for this post: </h2>
+      <ul>
+        {comments?.map((comment) => (
+          <li key={comment.id}>{comment?.text}</li>
+        ))}
+      </ul>
 
-      <h2>Raw data:</h2>
-      <pre>{JSON.stringify(post, null, 4)}</pre>
+      <AddComment onSubmit={handleCommentAddition} />
     </>
   );
 }
